@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -46,7 +47,18 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 	defer file.Close()
 
-	mediatype := header.Header.Get("Content-Type")
+	contentType := header.Header.Get("Content-Type")
+
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get media type", err)
+		return
+	}
+
+	if mediatype != "image/jpeg" && mediatype != "image/png" {
+		respondWithError(w, http.StatusBadRequest, "invalid media type", err)
+		return
+	}
 
 	imageData, err := io.ReadAll(file)
 	if err != nil {
