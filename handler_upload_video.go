@@ -95,6 +95,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	buffer := make([]byte, 32)
 	rand.Read(buffer)
 	filekey := base64.RawURLEncoding.EncodeToString(buffer)
+	filekey += ".mp4"
 
 	cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{Bucket: &cfg.s3Bucket, Key: &filekey, Body: tempfile, ContentType: &mediatype})
 
