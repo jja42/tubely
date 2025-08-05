@@ -92,10 +92,30 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	tempfile.Seek(0, io.SeekStart)
 
+	ratio, err := getVideoAspectRatio(tempfile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to get video aspect ratio", err)
+		return
+	}
+
+	var aspectRatio string
+
+	if ratio == "16:9" {
+		aspectRatio = "landscape/"
+	} else {
+		if ratio == "9:16" {
+			aspectRatio = "portrait/"
+		} else {
+			aspectRatio = "other/"
+		}
+	}
+
 	buffer := make([]byte, 32)
 	rand.Read(buffer)
 	filekey := base64.RawURLEncoding.EncodeToString(buffer)
 	filekey += ".mp4"
+
+	filekey = "videos/" + aspectRatio + filekey
 
 	cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{Bucket: &cfg.s3Bucket, Key: &filekey, Body: tempfile, ContentType: &mediatype})
 
