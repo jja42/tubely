@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
-	"log"
 	"net/http"
-	"os/exec"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
@@ -99,6 +95,12 @@ func (cfg *apiConfig) handlerVideoGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	video, err = cfg.dbVideoToSignedVideo(video)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to generate presigned video url", err)
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, video)
 }
 
@@ -120,38 +122,16 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	for i, video := range videos {
+
+		video, err = cfg.dbVideoToSignedVideo(video)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Unable to generate presigned video url", err)
+			return
+		}
+
+		videos[i] = video
+	}
+
 	respondWithJSON(w, http.StatusOK, videos)
-}
-
-func getVideoAspectRatio(filePath string) (string, error) {
-	command := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
-	buffer := new(bytes.Buffer)
-	command.Stdout = buffer
-	command.Run()
-
-	type Stream struct {
-		Width  int `json:"width"`
-		Height int `json:"height"`
-	}
-
-	type FFProbeOutput struct {
-		Streams []Stream `json:"streams"`
-	}
-
-	var result FFProbeOutput
-
-	if err := json.Unmarshal(buffer.Bytes(), &result); err != nil {
-		log.Fatalf("Error unmarshalling JSON: %v", err)
-		return "", errors.New("unable to get aspect ratio")
-	}
-
-	width := result.Streams[0].Width
-	height := result.Streams[0].Height
-
-	if width == 16*height/9 {
-		return "16:9", nil
-	} else if height == 16*width/9 {
-		return "9:16", nil
-	}
-	return "other", nil
 }
