@@ -136,7 +136,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{Bucket: &cfg.s3Bucket, Key: &filekey, Body: processedFile, ContentType: &mediatype})
 
-	videoURL := fmt.Sprintf("%s,%s", cfg.s3Bucket, filekey)
+	videoURL := fmt.Sprintf("https://%s/%s", cfg.s3CfDistribution, filekey)
 
 	video.VideoURL = &videoURL
 
